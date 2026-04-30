@@ -1,0 +1,64 @@
+import logging
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, Mes
+TOKEN = "8701172565:AAECVn3PSCKq8rp1GiQz6WIJlWjkJ9zrqwQ"
+ADMIN_ID = None # Заполним позже
+CARD_NUMBER = "2202 2084 3129 7366"
+PRICE = "200"
+logging.basicConfig(level=logging.INFO)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+keyboard = [[InlineKeyboardButton(" Купить VPN — 200₽", callback_data="buy")]]
+reply_markup = InlineKeyboardMarkup(keyboard)
+await update.message.reply_text(
+"Привет! \n\n"
+" Продаю VPN для обхода блокировок\n\n"
+" Стабильный и быстрый\n"
+" 200₽/месяц\n\n"
+"Нажми кнопку ниже чтобы купить ",
+reply_markup=reply_markup
+)
+async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+query = update.callback_query
+await query.answer()
+await query.message.reply_text(
+f" Для оплаты переведи {PRICE}₽ на карту:\n\n"
+f"<b>{CARD_NUMBER}</b>\n\n"
+"После оплаты отправь скрин сюда \n"
+"Ключ пришлю в течение 15 минут ",
+parse_mode="HTML"
+)
+# Уведомить админа
+if ADMIN_ID:
+await context.bot.send_message(
+chat_id=ADMIN_ID,
+text=f" Новый покупатель!\n"
+f"Пользователь: @{query.from_user.username or query.from_user.first_name}\n"
+f"ID: {query.from_user.id}"
+)
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+await update.message.reply_text(
+" Скрин получен! Проверяю оплату...\n"
+"Ключ пришлю в течение 15 минут."
+)
+if ADMIN_ID:
+await context.bot.send_message(
+chat_id=ADMIN_ID,
+text=f" Покупатель прислал скрин оплаты!\n"
+f"Пользователь: @{update.message.from_user.username or update.message.from_u
+f"ID: {update.message.from_user.id}\n\n"
+f"Отправь ключ!"
+)
+await context.bot.forward_message(
+chat_id=ADMIN_ID,
+from_chat_id=update.message.chat_id,
+message_id=update.message.message_id
+)
+def main():
+app = Application.builder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(buy, pattern="buy"))
+app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+print("Бот запущен!")
+app.run_polling()
+if __name__ == "__main__":
+main()
